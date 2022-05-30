@@ -25,9 +25,9 @@ app.add_middleware(
 
 @app.get('/tickers')
 async def tickers():
-    tickers = pyupbit.get_tickers()
-    krw_tickers = [ticker for ticker in tickers if 'KRW' in ticker]
-    return krw_tickers
+    tickers = pyupbit.get_tickers('KRW')
+    # krw_tickers = [ticker for ticker in tickers if 'KRW' in ticker]
+    return tickers
 
 
 @app.get('/tickers/{ticker}/data')
