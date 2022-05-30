@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko-kr">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+    <style>
+      * html body div {
+        font-weight: lighter;
+      }
+      .btn-group-xs > .btn, .btn-xs {
+        padding: .25rem .25rem;
+        font-size: .700rem;
+        font-weight: lighter;
+        line-height: .5;
+        border-radius: .1rem;
+      }
+    </style>
+    <title>CC Prophet</title>
+  </head>
+  <body>
+    <div class="container-fluid p-2" id="app">
+      <div class="row">
+        <div class="col-12">
+          <input class="form-control form-control-sm" v-model="query">
+        </div>
+        <div class="col">
+          <template v-for="ticker in tickers" v-if="!query">
+            <button class="btn btn-xs btn-outline-dark me-1" @click="setTicker(ticker)">{{ ticker }}</button>
+          </template>
+          <template v-for="ticker in matched" v-if="query">
+            <button class="btn btn-xs btn-outline-dark me-1" @click="setTicker(ticker)">{{ ticker }}</button>
+          </template>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col" ref="plot_wrapper"></div>
+      </div>
+      <code>
+        {{ ticker }}
+      </code>
+    </div>
+
+    <!-- Optional JavaScript; choose one of the two! -->
+
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.11.1.min.js"></script>
+
+    <!-- Option 2: Separate Popper and Bootstrap JS -->
+    <!--
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js" integrity="sha384-7+zCNj/IqJ95wo16oMtfsKbZ9ccEh31eOz1HGyDuCQ6wgnyJNSYdrPa03rtR1zdB" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js" integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13" crossorigin="anonymous"></script>
+    -->
+  </body>
+
+  <script>
+    const apihost = 'http://localhost:8000'
+    const app = new Vue({
+      el: '#app',
+      data(){
+        return {
+          tickers: [],
+          ticker: '',
+          future: null,
+          plotData: {
+            ds: [],
+            yhat: [],
+            yhatlower: [],
+            yhatupper: [],
+            y: []
+          },
+          query: '',
+          matched: []
+        }
+      },
+      mounted(){
+        this.getTickers()
+        // if (this.tickers.length > 0 && !this.ticker) {
+        //   this.ticker = this.tickers[0];
+        //   console.log(this.tickers[0]);
+        // }
+      },
+      watch: {
+        ticker: function(){
+          this.getData();
+        },
+        plotData: function(){
+          this.plot();
+        },
+        query: function(){
+          this.searchTicker();
+        }
+      },
+      methods: {
+        getTickers(){
+          axios.get(`${apihost}/tickers`)
+            .then(({data}) => {
+              this.tickers = data;
+              this.ticker = this.tickers[0];
+            })
+        },
+        setTicker(ticker){
+          this.ticker = ticker;
+        },
+        getData(){
+          axios.get(`${apihost}/tickers/${this.ticker}/data`)
+            .then(({data}) => {
+              console.log(data);
+              this.plotData = {};
+              this.plotData['ds'] = data[0];
+              this.plotData['y'] = data[4]
+              this.plotData['yhat'] = data[1];
+              this.plotData['yhatlower'] = data[2];
+              this.plotData['yhatupper'] = data[3];
+            });
+        },
+        plot(){
+          const actual = {
+            x: this.plotData.ds,
+            y: this.plotData.y,
+            mode: 'markers',
+            type: 'scatter'
+          };
+          const yhat = {
+            x: this.plotData.ds,
+            y: this.plotData.yhat,
+            type: 'scatter'
+          };
+          const yhatupper = {
+            x: this.plotData.ds,
+            y: this.plotData.yhatupper,
+            // fill: 'tonexty',
+            type: 'scatter',
+            line: {width: 0}
+          };
+          const yhatlower = {
+            x: this.plotData.ds,
+            y: this.plotData.yhatlower,
+            fill: 'tonexty',
+            type: 'scatter',
+            line: {width: 0}
+          };
+          let layout = {
+            // width: 1400,
+            height: 500
+          };
+          Plotly.react(this.$refs.plot_wrapper, [actual, yhat, yhatupper, yhatlower], layout);
+        },
+        searchTicker(){
+          let results = [];
+          this.matched = this.tickers.filter((ticker) => {
+            return ticker.includes(this.query.toUpperCase());
+          });
+          console.log(this.matched);
+        }
+      }
+    })
+  </script>
+</html>
