@@ -33,7 +33,7 @@
     <div class="container-fluid p-2" id="app">
       <div class="row">
         <div class="col-12 pb-1">
-          <input class="form-control form-control-sm" v-model="query">
+          <input class="form-control form-control-sm" v-model="query" placeholder="Search">
         </div>
         <div class="col">
           <template v-for="ticker in tickers" v-if="!query">
